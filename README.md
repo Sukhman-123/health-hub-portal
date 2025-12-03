@@ -1,4 +1,4 @@
-## Welcome to your Lovable project
+## Welcome to the Health Hub Portal
 
 The only requirement for this project is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
