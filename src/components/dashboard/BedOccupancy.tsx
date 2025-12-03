@@ -1,24 +1,67 @@
-import { Progress } from "@/components/ui/progress";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
-interface Ward {
+interface WardStats {
   name: string;
   occupied: number;
   total: number;
   color: string;
 }
 
-const wards: Ward[] = [
-  { name: "ICU", occupied: 8, total: 10, color: "bg-destructive" },
-  { name: "General Ward", occupied: 45, total: 60, color: "bg-primary" },
-  { name: "Pediatrics", occupied: 12, total: 20, color: "bg-secondary" },
-  { name: "Maternity", occupied: 15, total: 25, color: "bg-success" },
-  { name: "Emergency", occupied: 18, total: 20, color: "bg-warning" },
-];
+interface BedOccupancyProps {
+  refreshKey?: number;
+}
 
-const BedOccupancy = () => {
+const wardColors: Record<string, string> = {
+  "ICU": "bg-destructive",
+  "General Ward": "bg-primary",
+  "Pediatrics": "bg-secondary",
+  "Maternity": "bg-success",
+  "Emergency": "bg-warning",
+};
+
+const BedOccupancy = ({ refreshKey }: BedOccupancyProps) => {
+  const [wards, setWards] = useState<WardStats[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchBedStats();
+  }, [refreshKey]);
+
+  const fetchBedStats = async () => {
+    setLoading(true);
+    
+    const { data, error } = await supabase
+      .from('beds')
+      .select('ward, status');
+
+    if (!error && data) {
+      const wardMap = new Map<string, { total: number; occupied: number }>();
+      
+      data.forEach(bed => {
+        const existing = wardMap.get(bed.ward) || { total: 0, occupied: 0 };
+        existing.total++;
+        if (bed.status === 'occupied') {
+          existing.occupied++;
+        }
+        wardMap.set(bed.ward, existing);
+      });
+
+      const wardStats: WardStats[] = Array.from(wardMap.entries()).map(([name, stats]) => ({
+        name,
+        occupied: stats.occupied,
+        total: stats.total,
+        color: wardColors[name] || "bg-primary",
+      }));
+
+      setWards(wardStats);
+    }
+    setLoading(false);
+  };
+
   const totalOccupied = wards.reduce((acc, ward) => acc + ward.occupied, 0);
   const totalBeds = wards.reduce((acc, ward) => acc + ward.total, 0);
-  const overallOccupancy = Math.round((totalOccupied / totalBeds) * 100);
+  const overallOccupancy = totalBeds > 0 ? Math.round((totalOccupied / totalBeds) * 100) : 0;
 
   return (
     <div className="bg-card rounded-xl shadow-card border border-border/50 overflow-hidden animate-slide-up" style={{ animationDelay: "500ms" }}>
@@ -36,25 +79,36 @@ const BedOccupancy = () => {
       </div>
       
       <div className="p-6 space-y-5">
-        {wards.map((ward, index) => {
-          const percentage = Math.round((ward.occupied / ward.total) * 100);
-          return (
-            <div key={ward.name} style={{ animationDelay: `${600 + index * 50}ms` }}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-card-foreground">{ward.name}</span>
-                <span className="text-sm text-muted-foreground">
-                  {ward.occupied}/{ward.total} ({percentage}%)
-                </span>
+        {loading ? (
+          <div className="p-4 text-center text-muted-foreground">
+            <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-2" />
+            Loading bed stats...
+          </div>
+        ) : wards.length === 0 ? (
+          <div className="p-4 text-center text-muted-foreground">
+            No beds configured in the system.
+          </div>
+        ) : (
+          wards.map((ward, index) => {
+            const percentage = ward.total > 0 ? Math.round((ward.occupied / ward.total) * 100) : 0;
+            return (
+              <div key={ward.name} style={{ animationDelay: `${600 + index * 50}ms` }}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-card-foreground">{ward.name}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {ward.occupied}/{ward.total} ({percentage}%)
+                  </span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full ${ward.color} rounded-full transition-all duration-500`}
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
               </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div 
-                  className={`h-full ${ward.color} rounded-full transition-all duration-500`}
-                  style={{ width: `${percentage}%` }}
-                />
-              </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </div>
   );
