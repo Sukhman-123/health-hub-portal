@@ -12,7 +12,7 @@ import {
   Activity
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import setuHealthLogo from "@/assets/setuhealth-logo.png";
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -63,12 +63,10 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
       {/* Logo */}
       <div className="p-6 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl gradient-secondary flex items-center justify-center shadow-glow">
-            <Activity className="w-6 h-6 text-sidebar-primary-foreground" />
-          </div>
+          <img src={setuHealthLogo} alt="SetuHealth Logo" className="w-10 h-10 object-contain" />
           <div>
-            <h1 className="font-bold text-lg text-sidebar-foreground">MediCare</h1>
-            <p className="text-xs text-sidebar-foreground/60">Healthcare Portal</p>
+            <h1 className="font-bold text-lg text-sidebar-foreground">SetuHealth</h1>
+            <p className="text-xs text-sidebar-foreground/60">Bridge to Better Health</p>
           </div>
         </div>
       </div>
